@@ -1,0 +1,6 @@
+mkdir -p app/certs
+# приватный ключ
+openssl genrsa -out app/certs/jwt-private.pem 2048
+# публичный ключ
+openssl rsa -in app/certs/jwt-private.pem -pubout -out app/certs/jwt-public.pem
+writing RSA key

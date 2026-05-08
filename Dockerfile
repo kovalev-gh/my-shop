@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 # Рабочая директория
 WORKDIR /app
@@ -15,8 +15,11 @@ RUN uv sync --frozen
 # Копируем весь проект
 COPY . .
 
+# Устанавливаем PYTHONPATH, чтобы app/ был корнем исходников
+ENV PYTHONPATH=/app/app
+
 # Экспонируем порт
 EXPOSE 8000
 
 # Запуск FastAPI через uv
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
