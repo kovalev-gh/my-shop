@@ -1,23 +1,18 @@
-from typing import TYPE_CHECKING
+#from typing import TYPE_CHECKING
+#if TYPE_CHECKING:
+#    from .post import Post
+#    from .profile import Profile
 
-from sqlalchemy import String
+from sqlalchemy import String, Integer, DateTime, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base
-
-if TYPE_CHECKING:
-    from .post import Post
-    from .profile import Profile
+from core.db.postgres import Base
 
 
 class User(Base):
-    username: Mapped[str] = mapped_column(String(32), unique=True)
-
-    posts: Mapped[list["Post"]] = relationship(back_populates="user")
-    profile: Mapped["Profile"] = relationship(back_populates="user")
-
-    def __str__(self):
-        return f"{self.__class__.__name__}(id={self.id}, username={self.username!r})"
-
-    def __repr__(self):
-        return str(self)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    mail: Mapped[str] = mapped_column(String(100), nullable=False)
+    phone: Mapped[str] = mapped_column(String(100), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
