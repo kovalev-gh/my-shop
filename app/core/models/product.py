@@ -14,3 +14,4 @@ class Product(Base):
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(String(500), nullable=False)
     unit_price: Mapped[float] = mapped_column(Float, nullable=False)
+    stock_quantity: Mapped[int] = mapped_column(Integer, nullable=False)

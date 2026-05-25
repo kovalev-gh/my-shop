@@ -2,10 +2,10 @@ __all__ = (
     "Product",
     "User",
     "Order",
-    "OrderProductAssociation",
+    "OrderItem",
 )
 
 from .product import Product
 from .user import User
 from .order import Order
-from .order_product_association import OrderProductAssociation
+from .order_item import OrderItem
