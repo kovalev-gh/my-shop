@@ -1,6 +1,6 @@
-#from typing import TYPE_CHECKING
-#if TYPE_CHECKING:
-#    from .post import Post
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .order import Order
 #    from .profile import Profile
 
 from sqlalchemy import String, Integer, DateTime, Boolean, ForeignKey
@@ -16,3 +16,9 @@ class User(Base):
     mail: Mapped[str] = mapped_column(String(100), nullable=False)
     phone: Mapped[str] = mapped_column(String(100), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    orders: Mapped[list["Order"]] = relationship(
+        "Order",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
