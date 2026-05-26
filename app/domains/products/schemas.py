@@ -1,10 +1,13 @@
+# app/domains/products/schemas.py
+
 from pydantic import BaseModel, ConfigDict
 
 
 class ProductBase(BaseModel):
-    name: str
+    title: str
     description: str
-    price: int
+    unit_price: float
+    stock_quantity: int
 
 
 class ProductCreate(ProductBase):
@@ -16,9 +19,10 @@ class ProductUpdate(ProductBase):
 
 
 class ProductUpdatePartial(BaseModel):
-    name: str | None = None
+    title: str | None = None
     description: str | None = None
-    price: int | None = None
+    unit_price: float | None = None
+    stock_quantity: int | None = None
 
 
 class ProductRead(ProductBase):
