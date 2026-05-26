@@ -30,7 +30,7 @@ class ProductService(
 
         product = await self.create(
             session=session,
-            data=product_in.model_dump(),
+            **product_in.model_dump(),
         )
 
         return product
@@ -46,7 +46,7 @@ class ProductService(
         updated_product = await self.update(
             session=session,
             obj=product,
-            data=product_update.model_dump(
+            **product_update.model_dump(
                 exclude_unset=partial,
             ),
         )
