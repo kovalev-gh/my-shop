@@ -3,7 +3,7 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.postgres import get_async_session
+from core.db.postgres import get_async_session
 
 from .models import Product
 from .service import ProductService

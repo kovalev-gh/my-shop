@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.postgres import get_async_session
+from core.db.postgres import get_async_session
 
 from .dependencies import get_product_by_id
 from .models import Product

@@ -2,7 +2,7 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domains.base.service import BaseService
+from domains.base.service import BaseService
 
 from .models import Product
 from .repository import ProductRepository
