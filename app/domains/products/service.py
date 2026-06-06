@@ -2,8 +2,6 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from domains.base.service import BaseService
-
 from .exceptions import ProductNotFoundException
 from .models import Product
 from .repository import ProductRepository
@@ -14,13 +12,19 @@ from .schemas import (
 )
 
 
-class ProductService(
-    BaseService[
-        Product,
-        ProductRepository,
-    ]
-):
-    repository_class = ProductRepository
+class ProductService:
+
+    def __init__(self):
+        self.repository = ProductRepository()
+
+    async def get_all(
+        self,
+        session: AsyncSession,
+    ) -> list[Product]:
+
+        return await self.repository.get_all(
+            session=session,
+        )
 
     async def get_product(
         self,
@@ -28,7 +32,7 @@ class ProductService(
         product_id: int,
     ) -> Product:
 
-        product = await self.get_by_id(
+        product = await self.repository.get_by_id(
             session=session,
             obj_id=product_id,
         )
@@ -44,10 +48,14 @@ class ProductService(
         product_in: ProductCreate,
     ) -> Product:
 
-        return await self.create(
+        product = await self.repository.create(
             session=session,
             **product_in.model_dump(),
         )
+
+        await session.commit()
+
+        return product
 
     async def update_product(
         self,
@@ -62,13 +70,17 @@ class ProductService(
             product_id=product_id,
         )
 
-        return await self.update(
+        product = await self.repository.update(
             session=session,
             obj=product,
             **product_update.model_dump(
                 exclude_unset=partial,
             ),
         )
+
+        await session.commit()
+
+        return product
 
     async def delete_product(
         self,
@@ -81,7 +93,9 @@ class ProductService(
             product_id=product_id,
         )
 
-        await self.delete(
+        await self.repository.delete(
             session=session,
             obj=product,
         )
+
+        await session.commit()
