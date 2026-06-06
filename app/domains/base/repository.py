@@ -20,9 +20,7 @@ class BaseRepository(Generic[ModelType]):
     ) -> list[ModelType]:
 
         stmt = select(self.model).order_by(self.model.id)
-
         result = await session.execute(stmt)
-
         return list(result.scalars().all())
 
     async def get_by_id(
@@ -43,11 +41,8 @@ class BaseRepository(Generic[ModelType]):
     ) -> ModelType:
 
         obj = self.model(**kwargs)
-
         session.add(obj)
-
         await session.flush()
-
         return obj
 
     async def update(
@@ -59,9 +54,7 @@ class BaseRepository(Generic[ModelType]):
 
         for field, value in kwargs.items():
             setattr(obj, field, value)
-
         await session.flush()
-
         return obj
 
     async def delete(
@@ -71,5 +64,4 @@ class BaseRepository(Generic[ModelType]):
     ) -> None:
 
         await session.delete(obj)
-
         await session.flush()
