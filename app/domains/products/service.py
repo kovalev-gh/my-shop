@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.base.service import BaseService
 
+from .exceptions import ProductNotFoundException
 from .models import Product
 from .repository import ProductRepository
 from .schemas import (
@@ -19,8 +20,23 @@ class ProductService(
         ProductRepository,
     ]
 ):
-
     repository_class = ProductRepository
+
+    async def get_product(
+        self,
+        session: AsyncSession,
+        product_id: int,
+    ) -> Product:
+
+        product = await self.get_by_id(
+            session=session,
+            obj_id=product_id,
+        )
+
+        if product is None:
+            raise ProductNotFoundException()
+
+        return product
 
     async def create_product(
         self,
@@ -28,22 +44,25 @@ class ProductService(
         product_in: ProductCreate,
     ) -> Product:
 
-        product = await self.create(
+        return await self.create(
             session=session,
             **product_in.model_dump(),
         )
 
-        return product
-
     async def update_product(
         self,
         session: AsyncSession,
-        product: Product,
+        product_id: int,
         product_update: ProductUpdate | ProductUpdatePartial,
         partial: bool = False,
     ) -> Product:
 
-        updated_product = await self.update(
+        product = await self.get_product(
+            session=session,
+            product_id=product_id,
+        )
+
+        return await self.update(
             session=session,
             obj=product,
             **product_update.model_dump(
@@ -51,13 +70,16 @@ class ProductService(
             ),
         )
 
-        return updated_product
-
     async def delete_product(
         self,
         session: AsyncSession,
-        product: Product,
+        product_id: int,
     ) -> None:
+
+        product = await self.get_product(
+            session=session,
+            product_id=product_id,
+        )
 
         await self.delete(
             session=session,

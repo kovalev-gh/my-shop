@@ -5,12 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db.postgres import get_async_session
 
-from .dependencies import get_product_by_id
-from .models import Product
 from .schemas import (
     ProductCreate,
     ProductRead,
-    ProductUpdate,
     ProductUpdatePartial,
 )
 from .service import ProductService
@@ -31,7 +28,6 @@ service = ProductService()
 async def get_products(
     session: AsyncSession = Depends(get_async_session),
 ):
-
     return await service.get_all(
         session=session,
     )
@@ -42,10 +38,13 @@ async def get_products(
     response_model=ProductRead,
 )
 async def get_product(
-    product: Product = Depends(get_product_by_id),
+    product_id: int,
+    session: AsyncSession = Depends(get_async_session),
 ):
-
-    return product
+    return await service.get_product(
+        session=session,
+        product_id=product_id,
+    )
 
 
 @router.post(
@@ -57,7 +56,6 @@ async def create_product(
     product_in: ProductCreate,
     session: AsyncSession = Depends(get_async_session),
 ):
-
     return await service.create_product(
         session=session,
         product_in=product_in,
@@ -69,14 +67,13 @@ async def create_product(
     response_model=ProductRead,
 )
 async def update_product_partial(
+    product_id: int,
     product_update: ProductUpdatePartial,
-    product: Product = Depends(get_product_by_id),
     session: AsyncSession = Depends(get_async_session),
 ):
-
     return await service.update_product(
         session=session,
-        product=product,
+        product_id=product_id,
         product_update=product_update,
         partial=True,
     )
@@ -87,11 +84,10 @@ async def update_product_partial(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_product(
-    product: Product = Depends(get_product_by_id),
+    product_id: int,
     session: AsyncSession = Depends(get_async_session),
 ):
-
     await service.delete_product(
         session=session,
-        product=product,
+        product_id=product_id,
     )

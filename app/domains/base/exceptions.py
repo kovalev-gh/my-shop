@@ -1,53 +1,45 @@
-# app/domains/base/exceptions.py
-# не уверен, что этот файл вообще нужен
+from fastapi import HTTPException, status
 
 
-class DomainException(Exception):
-    """
-    Базовое доменное исключение.
-
-    Все бизнес-ошибки должны наследоваться от него.
-    """
-
-    default_detail = "Domain exception"
-
+class BadRequestException(HTTPException):
     def __init__(
         self,
-        detail: str | None = None,
-    ):
-
-        self.detail = detail or self.default_detail
-
-        super().__init__(self.detail)
-
-
-class NotFoundException(DomainException):
-    """
-    Объект не найден.
-    """
-
-    default_detail = "Object not found"
+        detail: str = "Bad request",
+    ) -> None:
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=detail,
+        )
 
 
-class ValidationException(DomainException):
-    """
-    Ошибка бизнес-валидации.
-    """
-
-    default_detail = "Validation error"
-
-
-class AlreadyExistsException(DomainException):
-    """
-    Объект уже существует.
-    """
-
-    default_detail = "Object already exists"
+class NotFoundException(HTTPException):
+    def __init__(
+        self,
+        detail: str = "Not found",
+    ) -> None:
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=detail,
+        )
 
 
-class PermissionDeniedException(DomainException):
-    """
-    Недостаточно прав.
-    """
+class AlreadyExistsException(HTTPException):
+    def __init__(
+        self,
+        detail: str = "Already exists",
+    ) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=detail,
+        )
 
-    default_detail = "Permission denied"
+
+class InternalServerException(HTTPException):
+    def __init__(
+        self,
+        detail: str = "Internal server error",
+    ) -> None:
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=detail,
+        )
