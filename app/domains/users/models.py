@@ -11,10 +11,10 @@ from core.db.postgres import Base
 
 class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    name: Mapped[str | None] = mapped_column(String(100))
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    mail: Mapped[str] = mapped_column(String(100), nullable=False)
-    phone: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[str] = mapped_column(String(100), nullable=False)
+    phone: Mapped[str | None] = mapped_column(String(100))
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 
     orders: Mapped[list["Order"]] = relationship(
