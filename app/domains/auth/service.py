@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from domains.users.models import User
 from domains.users.repository import UserRepository
 
+from .exceptions import InvalidCredentialsException
 from .jwt import (
     create_access_token,
     create_refresh_token,
@@ -67,9 +68,7 @@ class AuthService:
         )
 
         if user is None:
-            raise ValueError(
-                "Invalid email or password",
-            )
+            raise InvalidCredentialsException()
 
         return self.create_tokens(
             user_id=user.id,

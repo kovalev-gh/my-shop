@@ -10,6 +10,10 @@ from domains.users.schemas import UserCreate, UserRead
 from domains.users.service import UserService
 
 from .dependencies import get_current_user
+from .exceptions import (
+    InvalidCredentialsException,
+    InvalidTokenException,
+)
 from .jwt import decode_jwt
 from .schemas import (
     LoginRequest,
@@ -62,10 +66,32 @@ async def login(
             password=form_data.password,
         )
 
-    except ValueError:
+    except InvalidCredentialsException as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
+            detail=exc.detail,
+        )
+
+
+@router.post(
+    "/login-json",
+    response_model=TokenResponse,
+)
+async def login_json(
+    credentials: LoginRequest,
+    session: AsyncSession = Depends(get_async_session),
+):
+    try:
+        return await auth_service.login(
+            session=session,
+            email=credentials.email,
+            password=credentials.password,
+        )
+
+    except InvalidCredentialsException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=exc.detail,
         )
 
 
@@ -82,18 +108,29 @@ async def refresh_token(
         )
 
         if payload.get("type") != "refresh":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token type",
+            raise InvalidTokenException(
+                "Invalid token type",
             )
 
-        user_id = int(payload["sub"])
+        user_id = int(
+            payload["sub"],
+        )
 
         return auth_service.create_tokens(
             user_id=user_id,
         )
 
-    except InvalidTokenError:
+    except InvalidTokenException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=exc.detail,
+        )
+
+    except (
+        InvalidTokenError,
+        KeyError,
+        ValueError,
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
@@ -105,7 +142,9 @@ async def refresh_token(
     response_model=UserRead,
 )
 async def get_me(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        get_current_user,
+    ),
 ):
     return current_user
 
