@@ -8,6 +8,7 @@ from domains.products.repository import ProductRepository
 from .exceptions import (
     OrderNotFoundException,
     NotEnoughStockException,
+    OrderItemNotFoundException
 )
 from .models import Order
 from .repository import OrderRepository
@@ -123,3 +124,87 @@ class OrderService:
         )
 
         await session.commit()
+
+    async def add_item_to_order(
+            self,
+            session: AsyncSession,
+            order_id: int,
+            product_id: int,
+            quantity: int,
+    ) -> Order:
+
+        order = await self.get_order(
+            session=session,
+            order_id=order_id,
+        )
+
+        product = await self.product_repository.get_by_id(
+            session=session,
+            obj_id=product_id,
+        )
+
+        if product is None:
+            raise ProductNotFoundException()
+
+        if product.stock_quantity < quantity:
+            raise NotEnoughStockException(
+                product_id=product.id,
+            )
+
+        await self.repository.add_order_item(
+            session=session,
+            order_id=order.id,
+            product_id=product.id,
+            quantity=quantity,
+            price=product.unit_price,
+        )
+
+        product.stock_quantity -= quantity
+
+        await session.commit()
+
+        return await self.get_order(
+            session=session,
+            order_id=order.id,
+        )
+
+    async def remove_item_from_order(
+            self,
+            session: AsyncSession,
+            order_id: int,
+            item_id: int,
+    ) -> Order:
+
+        order = await self.get_order(
+            session=session,
+            order_id=order_id,
+        )
+
+        item = await self.repository.get_order_item_by_id(
+            session=session,
+            order_id=order.id,
+            item_id=item_id,
+        )
+
+        if item is None:
+            raise OrderItemNotFoundException()
+
+        product = await self.product_repository.get_by_id(
+            session=session,
+            obj_id=item.product_id,
+        )
+
+        if product:
+            product.stock_quantity += item.quantity
+
+        await self.repository.delete_order_item(
+            session=session,
+            item=item,
+        )
+
+        await session.commit()
+
+        return await self.get_order(
+            session=session,
+            order_id=order.id,
+        )

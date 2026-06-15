@@ -79,7 +79,37 @@ async def create_order(
         order_in=order_in,
     )
 
+@router.post(
+    "/{order_id}/items",
+    response_model=OrderRead,
+)
+async def add_item(
+    order_id: int,
+    product_id: int,
+    quantity: int,
+    session: AsyncSession = Depends(get_async_session),
+):
+    return await service.add_item_to_order(
+        session=session,
+        order_id=order_id,
+        product_id=product_id,
+        quantity=quantity,
+    )
 
+@router.delete(
+    "/{order_id}/items/{item_id}",
+    response_model=OrderRead,
+)
+async def remove_item(
+    order_id: int,
+    item_id: int,
+    session: AsyncSession = Depends(get_async_session),
+):
+    return await service.remove_item_from_order(
+        session=session,
+        order_id=order_id,
+        item_id=item_id,
+    )
 @router.delete(
     "/{order_id}",
     status_code=status.HTTP_204_NO_CONTENT,

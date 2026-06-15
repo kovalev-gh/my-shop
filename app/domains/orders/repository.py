@@ -81,3 +81,37 @@ class OrderRepository(
         await session.flush()
 
         return item
+
+    async def add_order_item(
+            self,
+            session: AsyncSession,
+            **kwargs,
+    ) -> OrderItem:
+        item = OrderItem(**kwargs)
+
+        session.add(item)
+        await session.flush()
+
+        return item
+
+    async def delete_order_item(
+            self,
+            session: AsyncSession,
+            item: OrderItem,
+    ) -> None:
+        await session.delete(item)
+        await session.flush()
+
+    async def get_order_item_by_id(
+            self,
+            session: AsyncSession,
+            order_id: int,
+            item_id: int,
+    ) -> OrderItem | None:
+        stmt = select(OrderItem).where(
+            OrderItem.id == item_id,
+            OrderItem.order_id == order_id,
+        )
+
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()

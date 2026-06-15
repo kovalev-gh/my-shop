@@ -21,3 +21,9 @@ class NotEnoughStockException(
         super().__init__(
             detail=f"Not enough stock for product {product_id}",
         )
+
+class OrderItemNotFoundException(NotFoundException):
+    def __init__(self):
+        super().__init__(
+            detail="Order item not found",
+        )
