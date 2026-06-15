@@ -34,7 +34,7 @@ async def get_products(
 
 
 @router.get(
-    "/{product_id}/",
+    "/{product_id}",
     response_model=ProductRead,
 )
 async def get_product(
@@ -63,7 +63,7 @@ async def create_product(
 
 
 @router.patch(
-    "/{product_id}/",
+    "/{product_id}",
     response_model=ProductRead,
 )
 async def update_product_partial(
@@ -80,7 +80,7 @@ async def update_product_partial(
 
 
 @router.delete(
-    "/{product_id}/",
+    "/{product_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_product(

@@ -6,7 +6,7 @@ from domains.auth.security import hash_password
 
 from .models import User
 from .repository import UserRepository
-from .schemas import UserCreate
+from .schemas import UserCreate, UserUpdate, UserUpdatePartial
 
 
 class UserService:
@@ -53,6 +53,34 @@ class UserService:
         await session.commit()
 
         return user
+
+
+    async def update_user(
+        self,
+        session: AsyncSession,
+        user_id: int,
+        user_update: UserUpdate | UserUpdatePartial,
+        partial: bool = False,
+    ) -> User:
+
+        user = await self.get_by_id(
+            session=session,
+            user_id=user_id,
+        )
+
+        user = await self.repository.update(
+            session=session,
+            obj=user,
+            **user_update.model_dump(
+                exclude_unset=partial,
+            ),
+        )
+
+        await session.commit()
+
+        return user
+
+
 
     async def delete_user(
         self,

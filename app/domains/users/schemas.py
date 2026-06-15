@@ -14,6 +14,12 @@ class UserUpdate(BaseModel):
     name: str | None = None
     phone: str | None = None
 
+class UserUpdatePartial(BaseModel):
+    name: str | None = None
+    phone: str | None = None
+    email: EmailStr | None = None
+    is_admin: bool | None = None
+
 
 class UserRead(UserBase):
     id: int

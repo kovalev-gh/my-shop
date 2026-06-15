@@ -6,7 +6,7 @@ from core.db.postgres import get_async_session
 from domains.auth.dependencies import get_current_user
 
 from .models import User
-from .schemas import UserRead, UserCreate
+from .schemas import UserRead, UserCreate, UserUpdatePartial
 from .service import UserService
 
 
@@ -64,6 +64,21 @@ async def create_user(
         user_in=user_in,
     )
 
+@router.patch(
+    "/{user_id}",
+    response_model=UserRead,
+)
+async def update_user_partial(
+    user_id: int,
+    user_update: UserUpdatePartial,
+    session: AsyncSession = Depends(get_async_session),
+):
+    return await service.update_user(
+        session=session,
+        user_id=user_id,
+        user_update=user_update,
+        partial=True,
+    )
 
 
 @router.delete(
