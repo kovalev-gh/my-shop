@@ -1,0 +1,66 @@
+# app/domains/orders/repository.py
+
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from domains.base.repository import BaseRepository
+
+from .models import Order, OrderItem
+
+
+class OrderRepository(
+    BaseRepository[Order],
+):
+    model = Order
+
+    async def get_order(
+        self,
+        session: AsyncSession,
+        order_id: int,
+    ) -> Order | None:
+
+        stmt = (
+            select(Order)
+            .where(Order.id == order_id)
+            .options(
+                selectinload(Order.items),
+            )
+        )
+
+        result = await session.execute(stmt)
+
+        return result.scalar_one_or_none()
+
+    async def get_user_orders(
+        self,
+        session: AsyncSession,
+        user_id: int,
+    ) -> list[Order]:
+
+        stmt = (
+            select(Order)
+            .where(Order.user_id == user_id)
+            .options(
+                selectinload(Order.items),
+            )
+            .order_by(Order.id.desc())
+        )
+
+        result = await session.execute(stmt)
+
+        return list(result.scalars().all())
+
+    async def create_item(
+        self,
+        session: AsyncSession,
+        **kwargs,
+    ) -> OrderItem:
+
+        item = OrderItem(**kwargs)
+
+        session.add(item)
+
+        await session.flush()
+
+        return item

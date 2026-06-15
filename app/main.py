@@ -12,6 +12,7 @@ import core.db.models # разобраться зачем этот импорт.
 from domains.products.router import router as products_router
 from domains.auth.router import router as auth_router
 from domains.users.router import router as users_router
+from domains.orders.router import router as orders_router
 
 
 @asynccontextmanager
@@ -23,6 +24,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(products_router)
 app.include_router(users_router)
 app.include_router(auth_router)
+app.include_router(orders_router)
 
 #app.include_router(router=router_v1, prefix=settings.api_v1_prefix)
 #app.include_router(items_router)
