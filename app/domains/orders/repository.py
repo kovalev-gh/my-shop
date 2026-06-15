@@ -14,7 +14,7 @@ class OrderRepository(
 ):
     model = Order
 
-    async def get_order(
+    async def get_order_by_id(
         self,
         session: AsyncSession,
         order_id: int,
@@ -31,6 +31,23 @@ class OrderRepository(
         result = await session.execute(stmt)
 
         return result.scalar_one_or_none()
+
+    async def get_all_orders(
+        self,
+        session: AsyncSession,
+    ) -> list[Order]:
+
+        stmt = (
+            select(Order)
+            .options(
+                selectinload(Order.items),
+            )
+            .order_by(Order.id.desc())
+        )
+
+        result = await session.execute(stmt)
+
+        return list(result.scalars().all())
 
     async def get_user_orders(
         self,
@@ -51,7 +68,7 @@ class OrderRepository(
 
         return list(result.scalars().all())
 
-    async def create_item(
+    async def create_order_item(
         self,
         session: AsyncSession,
         **kwargs,

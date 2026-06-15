@@ -26,7 +26,7 @@ class OrderService:
         order_id: int,
     ) -> Order:
 
-        order = await self.repository.get_order(
+        order = await self.repository.get_order_by_id(
             session=session,
             order_id=order_id,
         )
@@ -35,6 +35,15 @@ class OrderService:
             raise OrderNotFoundException()
 
         return order
+
+    async def get_all_orders(
+        self,
+        session: AsyncSession,
+    ) -> list[Order]:
+
+        return await self.repository.get_all_orders(
+            session=session,
+        )
 
     async def get_user_orders(
         self,
@@ -60,32 +69,37 @@ class OrderService:
             promocode=order_in.promocode,
         )
 
-        for item in order_in.items:
+        try:
+            for item in order_in.items:
 
-            product = await self.product_repository.get_by_id(
-                session=session,
-                obj_id=item.product_id,
-            )
-
-            if product is None:
-                raise ProductNotFoundException()
-
-            if product.stock_quantity < item.quantity:
-                raise NotEnoughStockException(
-                    product_id=product.id,
+                product = await self.product_repository.get_by_id(
+                    session=session,
+                    obj_id=item.product_id,
                 )
 
-            await self.repository.create_item(
-                session=session,
-                order_id=order.id,
-                product_id=product.id,
-                quantity=item.quantity,
-                price=product.unit_price,
-            )
+                if product is None:
+                    raise ProductNotFoundException()
 
-            product.stock_quantity -= item.quantity
+                if product.stock_quantity < item.quantity:
+                    raise NotEnoughStockException(
+                        product_id=product.id,
+                    )
 
-        await session.commit()
+                await self.repository.create_order_item(
+                    session=session,
+                    order_id=order.id,
+                    product_id=product.id,
+                    quantity=item.quantity,
+                    price=product.unit_price,
+                )
+
+                product.stock_quantity -= item.quantity
+
+            await session.commit()
+
+        except Exception:
+            await session.rollback()
+            raise
 
         return await self.get_order(
             session=session,

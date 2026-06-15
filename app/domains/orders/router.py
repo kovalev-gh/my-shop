@@ -38,6 +38,18 @@ async def get_my_orders(
 
 
 @router.get(
+    "/all",
+    response_model=list[OrderRead],
+)
+async def get_all_orders(
+    session: AsyncSession = Depends(get_async_session),
+):
+    return await service.get_all_orders(
+        session=session,
+    )
+
+
+@router.get(
     "/{order_id}",
     response_model=OrderRead,
 )
