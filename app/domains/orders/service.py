@@ -147,17 +147,25 @@ class OrderService:
             raise ProductNotFoundException()
 
         if product.stock_quantity < quantity:
-            raise NotEnoughStockException(
-                product_id=product.id,
-            )
+            raise NotEnoughStockException(product_id=product.id)
 
-        await self.repository.add_order_item(
+        existing_item = await self.repository.get_order_item(
             session=session,
-            order_id=order.id,
-            product_id=product.id,
-            quantity=quantity,
-            price=product.unit_price,
+            order_id=order_id,
+            product_id=product_id,
         )
+
+        if existing_item:
+            existing_item.quantity += quantity
+
+        else:
+            await self.repository.add_order_item(
+                session=session,
+                order_id=order.id,
+                product_id=product.id,
+                quantity=quantity,
+                price=product.unit_price,
+            )
 
         product.stock_quantity -= quantity
 
@@ -172,7 +180,8 @@ class OrderService:
             self,
             session: AsyncSession,
             order_id: int,
-            item_id: int,
+            product_id: int,
+            quantity: int | None = None,
     ) -> Order:
 
         order = await self.get_order(
@@ -180,27 +189,35 @@ class OrderService:
             order_id=order_id,
         )
 
-        item = await self.repository.get_order_item_by_id(
+        item = await self.repository.get_order_item(
             session=session,
-            order_id=order.id,
-            item_id=item_id,
+            order_id=order_id,
+            product_id=product_id,
         )
 
         if item is None:
-            raise OrderItemNotFoundException()
+            raise OrderItemNotFoundException
 
         product = await self.product_repository.get_by_id(
             session=session,
-            obj_id=item.product_id,
+            obj_id=product_id,
         )
 
-        if product:
+        if product is None:
+            raise ProductNotFoundException()
+
+        if quantity is None or quantity >= item.quantity:
+
             product.stock_quantity += item.quantity
 
-        await self.repository.delete_order_item(
-            session=session,
-            item=item,
-        )
+            await self.repository.delete_order_item(
+                session=session,
+                item=item,
+            )
+
+        else:
+            item.quantity -= quantity
+            product.stock_quantity += quantity
 
         await session.commit()
 

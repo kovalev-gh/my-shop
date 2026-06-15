@@ -115,3 +115,17 @@ class OrderRepository(
 
         result = await session.execute(stmt)
         return result.scalar_one_or_none()
+
+    async def get_order_item(
+            self,
+            session: AsyncSession,
+            order_id: int,
+            product_id: int,
+    ) -> OrderItem | None:
+        stmt = select(OrderItem).where(
+            OrderItem.order_id == order_id,
+            OrderItem.product_id == product_id,
+        )
+
+        result = await session.execute(stmt)
+        return result.scalar_one_or_none()
