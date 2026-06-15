@@ -7,10 +7,6 @@ from typing import TYPE_CHECKING
 
 from core.db.postgres import get_async_session
 from domains.users.repository import UserRepository
-
-if TYPE_CHECKING:
-    from domains.orders.models import Order
-    pass
 from domains.users.models import User
 
 from .jwt import decode_jwt

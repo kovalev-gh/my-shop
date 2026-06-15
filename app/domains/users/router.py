@@ -6,7 +6,7 @@ from core.db.postgres import get_async_session
 from domains.auth.dependencies import get_current_user
 
 from .models import User
-from .schemas import UserRead
+from .schemas import UserRead, UserCreate
 from .service import UserService
 
 
@@ -49,6 +49,21 @@ async def get_user(
         )
 
     return user
+
+@router.post(
+    "/",
+    response_model=UserRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_user(
+    user_in: UserCreate,
+    session: AsyncSession = Depends(get_async_session),
+):
+    return await service.create_user(
+        session=session,
+        user_in=user_in,
+    )
+
 
 
 @router.delete(
