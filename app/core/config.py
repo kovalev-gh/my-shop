@@ -1,3 +1,5 @@
+#app/core/config.py
+
 from pathlib import Path
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
@@ -7,14 +9,13 @@ BASE_DIR = Path(__file__).parent.parent
 
 
 class DbSettings(BaseModel):
-    # Асинхронный URL для PostgreSQL
     driver: str = "asyncpg"
     user: str = os.getenv("POSTGRES_USER", "postgres")
     password: str = os.getenv("POSTGRES_PASSWORD", "postgres")
     host: str = os.getenv("POSTGRES_HOST", "localhost")
     port: int = int(os.getenv("POSTGRES_PORT", 5432))
     database: str = os.getenv("POSTGRES_DB", "myshop_db")
-    echo: bool = True  # вывод SQL-запросов в консоль
+    echo: bool = False  # вывод SQL-запросов в консоль
 
     @property
     def url(self) -> str:

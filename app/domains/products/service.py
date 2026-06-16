@@ -11,6 +11,10 @@ from .schemas import (
     ProductUpdatePartial,
 )
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class ProductService:
 
@@ -48,12 +52,22 @@ class ProductService:
         product_in: ProductCreate,
     ) -> Product:
 
+        logger.info(
+            "Creating product: %s",
+            product_in.title,
+        )
+
         product = await self.repository.create(
             session=session,
             **product_in.model_dump(),
         )
 
         await session.commit()
+
+        logger.info(
+            "Product created: id=%s",
+            product.id,
+        )
 
         return product
 
