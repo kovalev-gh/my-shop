@@ -9,6 +9,7 @@ from domains.products.router import router as products_router
 from domains.auth.router import router as auth_router
 from domains.users.router import router as users_router
 from domains.orders.router import router as orders_router
+from domains.mailing.router import router as mailing_router
 from core.logger import configure_logging
 
 configure_logging()
@@ -23,6 +24,7 @@ app.include_router(products_router)
 app.include_router(users_router)
 app.include_router(auth_router)
 app.include_router(orders_router)
+app.include_router(mailing_router)
 
 
 @app.get("/hello/")

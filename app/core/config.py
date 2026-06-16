@@ -1,7 +1,7 @@
 #app/core/config.py
 
 from pathlib import Path
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from pydantic_settings import BaseSettings
 import os
 
@@ -32,14 +32,26 @@ class AuthJWT(BaseModel):
     # refresh_token_expire_minutes: int = 60 * 24 * 30
     # access_token_expire_minutes: int = 3
 
+class SmtpConfig(BaseModel):
+    host: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    port: int = int(os.getenv("SMTP_PORT", 587))
+
+    user: str | None = os.getenv("SMTP_USER") or None
+    password: str | None = os.getenv("SMTP_PASSWORD") or None
+
+    from_email: EmailStr | None = os.getenv("SMTP_FROM_EMAIL")
+
+    start_tls: bool = True
+    use_tls: bool = False
+
+    def get_from(self) -> EmailStr:
+        return self.from_email or self.user
 
 class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
-
     db: DbSettings = DbSettings()
-
     auth_jwt: AuthJWT = AuthJWT()
-
+    smtp: SmtpConfig = SmtpConfig()
     # db_echo: bool = True
 
 
