@@ -108,7 +108,8 @@ class OrderService:
             order_id=order.id,
         )
 
-        await send_order_notification_email(order)
+#        await send_order_notification_email(order) #отправляем письмо
+#отключил потому что не работает с впн
 
         return order
 
