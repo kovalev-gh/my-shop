@@ -12,7 +12,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str | None] = mapped_column(String(100))
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
-    email: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     phone: Mapped[str | None] = mapped_column(String(100))
     is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
 

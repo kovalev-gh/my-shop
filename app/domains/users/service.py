@@ -1,12 +1,12 @@
-# app/domains/users/service.py
-
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from domains.auth.security import hash_password
 
 from .models import User
 from .repository import UserRepository
 from .schemas import UserCreate, UserUpdate, UserUpdatePartial
+from .exceptions import UserAlreadyExistsException
 
 
 class UserService:
@@ -42,25 +42,28 @@ class UserService:
         user_in: UserCreate,
     ) -> User:
 
-        user = await self.repository.create(
-            session=session,
+        user = User(
             email=user_in.email,
-            hashed_password=hash_password(
-                user_in.password,
-            ),
+            hashed_password=hash_password(user_in.password),
         )
 
-        await session.commit()
+        session.add(user)
 
-        return user
+        try:
+            await session.commit()
+            await session.refresh(user)
+            return user
 
+        except IntegrityError:
+            await session.rollback()
+            raise UserAlreadyExistsException()
 
     async def update_user(
-        self,
-        session: AsyncSession,
-        user_id: int,
-        user_update: UserUpdate | UserUpdatePartial,
-        partial: bool = False,
+            self,
+            session: AsyncSession,
+            user_id: int,
+            user_update: UserUpdate | UserUpdatePartial,
+            partial: bool = False,
     ) -> User:
 
         user = await self.get_by_id(
@@ -68,19 +71,20 @@ class UserService:
             user_id=user_id,
         )
 
-        user = await self.repository.update(
-            session=session,
-            obj=user,
-            **user_update.model_dump(
-                exclude_unset=partial,
-            ),
-        )
+        try:
+            user = await self.repository.update(
+                session=session,
+                obj=user,
+                **user_update.model_dump(exclude_unset=partial),
+            )
 
-        await session.commit()
+            await session.commit()
+            await session.refresh(user)
+            return user
 
-        return user
-
-
+        except IntegrityError:
+            await session.rollback()
+            raise UserAlreadyExistsException()
 
     async def delete_user(
         self,
