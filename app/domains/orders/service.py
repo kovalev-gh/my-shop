@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.products.exceptions import ProductNotFoundException
 from domains.products.repository import ProductRepository
+from domains.mailing.send_order_notification import send_order_notification_email
 
 from .exceptions import (
     OrderNotFoundException,
@@ -102,10 +103,14 @@ class OrderService:
             await session.rollback()
             raise
 
-        return await self.get_order(
+        order = await self.get_order(
             session=session,
             order_id=order.id,
         )
+
+        await send_order_notification_email(order)
+
+        return order
 
     async def delete_order(
         self,
@@ -196,7 +201,7 @@ class OrderService:
         )
 
         if item is None:
-            raise OrderItemNotFoundException
+            raise OrderItemNotFoundException()
 
         product = await self.product_repository.get_by_id(
             session=session,
