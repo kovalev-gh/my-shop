@@ -27,13 +27,11 @@ async def send_email(
     smtp = settings.smtp
 
     logger.info(
-        "📨 Preparing email",
-        extra={
-            "to": recipient,
-            "subject": subject,
-            "smtp_host": smtp.host,
-            "smtp_port": smtp.port,
-        },
+        "📨 Preparing email to=%s subject=%s smtp_host=%s smtp_port=%s",
+        recipient,
+        subject,
+        smtp.host,
+        smtp.port,
     )
 
     try:
@@ -49,16 +47,26 @@ async def send_email(
 
         logger.info(
             "✅ Email sent successfully",
-            extra={"to": recipient, "subject": subject},
+            recipient,
+            subject,
+            smtp.host,
+            smtp.port,
         )
 
+
+
     except Exception as e:
+
         logger.exception(
-            "❌ Failed to send email",
-            extra={
-                "to": recipient,
-                "subject": subject,
-                "error": str(e),
-            },
+
+            "❌ Failed to send email to=%s subject=%s error=%s",
+
+            recipient,
+
+            subject,
+
+            str(e),
+
         )
+
         raise
