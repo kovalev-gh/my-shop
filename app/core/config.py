@@ -1,8 +1,10 @@
-#app/core/config.py
+# app/core/config.py
 
 from pathlib import Path
-from pydantic import BaseModel, EmailStr
+
+from pydantic import BaseModel, EmailStr, Field
 from pydantic_settings import BaseSettings
+
 import os
 
 BASE_DIR = Path(__file__).parent.parent
@@ -19,18 +21,23 @@ class DbSettings(BaseModel):
 
     @property
     def url(self) -> str:
-        """Собирает полный URL для SQLAlchemy Async Engine"""
-        return f"postgresql+{self.driver}://{self.user}:{self.password}@{self.host}:{self.port}/{self.database}"
+        return (
+            f"postgresql+{self.driver}://"
+            f"{self.user}:{self.password}@"
+            f"{self.host}:{self.port}/"
+            f"{self.database}"
+        )
 
 
 class AuthJWT(BaseModel):
     private_key_path: Path = BASE_DIR / "certs" / "jwt-private.pem"
     public_key_path: Path = BASE_DIR / "certs" / "jwt-public.pem"
+
     algorithm: str = "RS256"
+
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 30
-    # refresh_token_expire_minutes: int = 60 * 24 * 30
-    # access_token_expire_minutes: int = 3
+
 
 class SmtpConfig(BaseModel):
     host: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
@@ -47,11 +54,19 @@ class SmtpConfig(BaseModel):
     def get_from(self) -> EmailStr:
         return self.from_email or self.user
 
+
+class YOOkassaConfig(BaseModel):
+    shop_id: str | None = os.getenv("YOOKASSA_SHOP_ID")
+    secret_key: str | None = os.getenv("YOOKASSA_SECRET_KEY")
+
+
 class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     db: DbSettings = DbSettings()
     auth_jwt: AuthJWT = AuthJWT()
     smtp: SmtpConfig = SmtpConfig()
+    yookassa: YOOkassaConfig = YOOkassaConfig()
+
     # db_echo: bool = True
 
 

@@ -27,3 +27,5 @@ async def send_order_notification_email(order: Order) -> None:
         subject=subject,
         body=body,
     )
+
+#на данный момент некоторые данные подтягиваются ленивой загрузкой
