@@ -1,13 +1,14 @@
-from decimal import Decimal
+from decimal import (
+    Decimal,
+    ROUND_HALF_UP,
+)
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.orders.models import OrderStatus
 from domains.orders.service import OrderService
 
-from .exceptions import (
-    PaymentNotFoundException,
-)
+from .exceptions import PaymentNotFoundException
 from .models import (
     Payment,
     PaymentStatus,
@@ -34,13 +35,18 @@ class PaymentService:
             order_id=order_id,
         )
 
-        total_amount = Decimal("0")
+        total_amount = Decimal("0.00")
 
         for item in order.items:
             total_amount += item.price * item.quantity
 
+        total_amount = total_amount.quantize(
+            Decimal("0.01"),
+            rounding=ROUND_HALF_UP,
+        )
+
         provider_payment = await self.provider.create_payment(
-            amount=float(total_amount),
+            amount=total_amount,
             order_id=order.id,
         )
 
@@ -86,6 +92,10 @@ class PaymentService:
             session=session,
             payment_id=payment_id,
         )
+
+        #Проверка для идемпотентности
+        if payment.status == PaymentStatus.SUCCEEDED:
+            return payment
 
         payment.status = PaymentStatus.SUCCEEDED
 

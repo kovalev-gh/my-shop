@@ -1,11 +1,11 @@
 from uuid import uuid4
-
+from decimal import Decimal
 
 class FakePaymentProvider:
 
     async def create_payment(
         self,
-        amount: float,
+        amount: Decimal,
         order_id: int,
     ) -> dict:
 
