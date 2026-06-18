@@ -5,6 +5,9 @@ from decimal import (
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import settings
+
+
 from domains.orders.models import OrderStatus
 from domains.orders.service import OrderService
 
@@ -13,7 +16,7 @@ from .models import (
     Payment,
     PaymentStatus,
 )
-from .provider import FakePaymentProvider
+from .provider import FakePaymentProvider,YookassaPaymentProvider
 from .repository import PaymentRepository
 
 
@@ -22,8 +25,15 @@ class PaymentService:
     def __init__(self):
         self.repository = PaymentRepository()
         self.order_service = OrderService()
-        self.provider = FakePaymentProvider()
+        self.provider = YookassaPaymentProvider(
+    shop_id=settings.yookassa.shop_id,
+    secret_key=settings.yookassa.secret_key,
+)
+        #self.provider= FakePaymentProvider()
 
+    # -------------------------
+    # CREATE PAYMENT
+    # -------------------------
     async def create_payment(
         self,
         session: AsyncSession,
@@ -53,7 +63,8 @@ class PaymentService:
         payment = await self.repository.create(
             session=session,
             order_id=order.id,
-            provider="fake",
+            provider="yookassa",
+            #provider="fake",
             provider_payment_id=provider_payment["id"],
             amount=total_amount,
             status=PaymentStatus.PENDING,
@@ -61,11 +72,11 @@ class PaymentService:
 
         await session.commit()
 
-        return (
-            payment,
-            provider_payment["confirmation_url"],
-        )
+        return payment, provider_payment["confirmation_url"]
 
+    # -------------------------
+    # GET PAYMENT
+    # -------------------------
     async def get_payment(
         self,
         session: AsyncSession,
@@ -82,6 +93,9 @@ class PaymentService:
 
         return payment
 
+    # -------------------------
+    # PUBLIC: mark by payment id
+    # -------------------------
     async def mark_succeeded(
         self,
         session: AsyncSession,
@@ -93,7 +107,37 @@ class PaymentService:
             payment_id=payment_id,
         )
 
-        #Проверка для идемпотентности
+        return await self._mark_succeeded(session, payment)
+
+    # -------------------------
+    # PUBLIC: mark by provider id (WEBHOOK USE)
+    # -------------------------
+    async def mark_succeeded_by_provider_id(
+        self,
+        session: AsyncSession,
+        provider_payment_id: str,
+    ) -> Payment:
+
+        payment = await self.repository.get_by_provider_payment_id(
+            session=session,
+            provider_payment_id=provider_payment_id,
+        )
+
+        if payment is None:
+            raise PaymentNotFoundException()
+
+        return await self._mark_succeeded(session, payment)
+
+    # -------------------------
+    # PRIVATE CORE LOGIC
+    # -------------------------
+    async def _mark_succeeded(
+        self,
+        session: AsyncSession,
+        payment: Payment,
+    ) -> Payment:
+
+        # идемпотентность (важно для webhook)
         if payment.status == PaymentStatus.SUCCEEDED:
             return payment
 
