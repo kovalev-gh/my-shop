@@ -45,7 +45,7 @@ async def get_payment(
     payment_id: int,
     session: AsyncSession = Depends(get_async_session),
 ):
-    return await service.get_payment(
+    return await service.get_payment_by_id(
         session=session,
         payment_id=payment_id,
     )

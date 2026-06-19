@@ -7,7 +7,12 @@ from sqlalchemy import update
 from domains.orders.models import Order, OrderStatus
 from domains.orders.service import OrderService
 
-from .exceptions import PaymentNotFoundException
+from .exceptions import (
+    PaymentNotFoundException,
+    PaymentAlreadyExistsException,
+    PaymentAlreadySucceededException,
+    PaymentAlreadyCanceledException
+)
 from .models import Payment, PaymentStatus
 from .provider import FakePaymentProvider
 from .repository import PaymentRepository
@@ -50,14 +55,30 @@ class PaymentService:
             session=session,
             order_id=order.id,
         )
+        if existing_payment:
+            if existing_payment.status == PaymentStatus.PENDING:
+                logger.info(
+                    "Payment already exists for order_id=%s payment_id=%s",
+                    order.id,
+                    existing_payment.id,
+                )
+                raise PaymentAlreadyExistsException()
 
-        if existing_payment and existing_payment.status == PaymentStatus.PENDING:
-            logger.info(
-                "Payment already exists for order_id=%s payment_id=%s",
-                order.id,
-                existing_payment.id,
-            )
-            return existing_payment, "already_exists"
+            if existing_payment.status == PaymentStatus.SUCCEEDED:
+                logger.warning(
+                    "Payment already succeeded for order_id=%s payment_id=%s",
+                    order.id, existing_payment.id
+                )
+                raise PaymentAlreadySucceededException()
+
+
+            if existing_payment.status == PaymentStatus.CANCELED:
+                logger.info(
+                    "Previous payment canceled, creating new one for order_id=%s",
+                    order.id,
+                )
+                #Если статус CANCELED - платеж на этот заказ создать нельзя!
+                raise PaymentAlreadyCanceledException()
 
         # считаем сумму
         total_amount = Decimal("0.00")
@@ -97,7 +118,6 @@ class PaymentService:
         )
 
         await session.commit()
-        await session.refresh(payment)
 
         logger.info(
             "Payment saved: payment_id=%s provider_payment_id=%s",
@@ -110,7 +130,7 @@ class PaymentService:
     # -------------------------
     # GET PAYMENT
     # -------------------------
-    async def get_payment(
+    async def get_payment_by_id(
         self,
         session: AsyncSession,
         payment_id: int,
@@ -146,7 +166,7 @@ class PaymentService:
 
         logger.info("Mark payment succeeded: payment_id=%s", payment_id)
 
-        payment = await self.get_payment(
+        payment = await self.get_payment_by_id(
             session=session,
             payment_id=payment_id,
         )

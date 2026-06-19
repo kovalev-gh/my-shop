@@ -29,14 +29,13 @@ class FakePaymentProvider:
 
         payment_id = str(uuid4())
 
-        logger.warning(f"confirmation_url: {self.base_url}/payments/fake-pay/{payment_id}")
+        logger.info(f"confirmation_url: {self.base_url}/payments/fake-pay/{payment_id}")
 
         return {
             "id": payment_id,
             "status": "pending",
             "confirmation_url": (
                 f"{self.base_url}/payments/fake-pay/{payment_id}"
-                #f"{self.base_url}/payments/fake-pay/{payment_id}"
             ),
         }
 
@@ -48,7 +47,6 @@ class FakePaymentProvider:
 
         async with httpx.AsyncClient() as client:
             await client.post(
-                #f"{self.base_url}/api/v1/webhooks/fake",
                     f"{self.base_url}/webhooks/fake",
                 json={
                     "event": "payment.succeeded",
