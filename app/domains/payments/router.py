@@ -50,7 +50,7 @@ async def get_payment(
         payment_id=payment_id,
     )
 
-
+# Чтобы не гонять вебхук
 @router.post(
     "/{payment_id}/success",
     response_model=PaymentRead,

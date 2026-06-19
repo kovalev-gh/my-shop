@@ -3,11 +3,9 @@ from fastapi.security import OAuth2PasswordBearer
 from jwt import InvalidTokenError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from typing import TYPE_CHECKING
-
 from core.db.postgres import get_async_session
-from domains.users.repository import UserRepository
 from domains.users.models import User
+from domains.users.repository import UserRepository
 
 from .jwt import decode_jwt
 
@@ -23,7 +21,6 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme),
     session: AsyncSession = Depends(get_async_session),
 ) -> User:
-
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -33,8 +30,8 @@ async def get_current_user(
     try:
         payload = decode_jwt(token)
 
-        token_type = payload.get("type")
         user_id = payload.get("sub")
+        token_type = payload.get("type")
 
         if token_type != "access":
             raise credentials_exception
@@ -54,3 +51,15 @@ async def get_current_user(
         raise credentials_exception
 
     return user
+
+
+async def get_current_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
+    return current_user

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db.postgres import get_async_session
+from domains.auth.dependencies import get_current_admin
 
 from .schemas import (
     ProductCreate,
@@ -55,6 +56,7 @@ async def get_product(
 async def create_product(
     product_in: ProductCreate,
     session: AsyncSession = Depends(get_async_session),
+    admin=Depends(get_current_admin),
 ):
     return await service.create_product(
         session=session,
@@ -70,6 +72,7 @@ async def update_product_partial(
     product_id: int,
     product_update: ProductUpdatePartial,
     session: AsyncSession = Depends(get_async_session),
+    admin=Depends(get_current_admin),
 ):
     return await service.update_product(
         session=session,
@@ -86,6 +89,7 @@ async def update_product_partial(
 async def delete_product(
     product_id: int,
     session: AsyncSession = Depends(get_async_session),
+    admin=Depends(get_current_admin),
 ):
     await service.delete_product(
         session=session,

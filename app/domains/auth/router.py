@@ -153,5 +153,9 @@ async def get_me(
     "/logout",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def logout():
+async def logout(
+    current_user: User = Depends(
+        get_current_user,
+    ),
+):
     return None
