@@ -57,7 +57,7 @@ class PaymentService:
         )
         if existing_payment:
             if existing_payment.status == PaymentStatus.PENDING:
-                logger.info(
+                logger.warning(
                     "Payment already exists for order_id=%s payment_id=%s",
                     order.id,
                     existing_payment.id,
@@ -73,7 +73,7 @@ class PaymentService:
 
 
             if existing_payment.status == PaymentStatus.CANCELED:
-                logger.info(
+                logger.warning(
                     "Previous payment canceled, creating new one for order_id=%s",
                     order.id,
                 )
@@ -158,7 +158,7 @@ class PaymentService:
     # -------------------------
     # PUBLIC: mark by payment id
     # -------------------------
-    async def mark_succeeded(
+    async def mark_succeeded_by_payment_id(
         self,
         session: AsyncSession,
         payment_id: int,
@@ -227,7 +227,6 @@ class PaymentService:
         # обновляем payment
         payment.status = PaymentStatus.SUCCEEDED
 
-        # 🔴 ВАЖНО: обновляем заказ безопасно через SQL UPDATE
         await session.execute(
             update(Order)
             .where(Order.id == payment.order_id)
@@ -235,7 +234,6 @@ class PaymentService:
         )
 
         await session.commit()
-        await session.refresh(payment)
 
         logger.info(
             "Payment SUCCESS: payment_id=%s order_id=%s",

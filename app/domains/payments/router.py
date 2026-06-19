@@ -59,7 +59,7 @@ async def success_payment(
     payment_id: int,
     session: AsyncSession = Depends(get_async_session),
 ):
-    return await service.mark_succeeded(
+    return await service.mark_succeeded_by_payment_id(
         session=session,
         payment_id=payment_id,
     )

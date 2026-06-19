@@ -27,19 +27,19 @@ class FakePaymentProvider:
         (в реальности это Stripe/YooKassa create intent)
         """
 
-        payment_id = str(uuid4())
+        provider_payment_id = str(uuid4())
 
-        logger.info(f"confirmation_url: {self.base_url}/payments/fake-pay/{payment_id}")
+        logger.info(f"confirmation_url: {self.base_url}/payments/fake-pay/{provider_payment_id}")
 
         return {
-            "id": payment_id,
+            "id": provider_payment_id,
             "status": "pending",
             "confirmation_url": (
-                f"{self.base_url}/payments/fake-pay/{payment_id}"
+                f"{self.base_url}/payments/fake-pay/{provider_payment_id}"
             ),
         }
 
-    async def send_success_webhook(self, payment_id: str) -> None:
+    async def send_success_webhook(self, provider_payment_id: str) -> None:
         """
         ИМИТАЦИЯ:
         внешний платёжный сервис сообщает об успешной оплате
@@ -51,7 +51,7 @@ class FakePaymentProvider:
                 json={
                     "event": "payment.succeeded",
                     "object": {
-                        "id": payment_id,
+                        "id": provider_payment_id,
                     },
                 },
                 timeout=5.0,
