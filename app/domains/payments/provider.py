@@ -29,14 +29,13 @@ class FakePaymentProvider:
 
         provider_payment_id = str(uuid4())
 
-        logger.info(f"confirmation_url: {self.base_url}/payments/fake-pay/{provider_payment_id}")
+        confirmation_url = f"{self.base_url}/payments/fake-pay/{provider_payment_id}"
 
+        logger.info("confirmation_url: %s",confirmation_url)
         return {
             "id": provider_payment_id,
             "status": "pending",
-            "confirmation_url": (
-                f"{self.base_url}/payments/fake-pay/{provider_payment_id}"
-            ),
+            "confirmation_url": confirmation_url
         }
 
     async def send_success_webhook(self, provider_payment_id: str) -> None:
