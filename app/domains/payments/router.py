@@ -1,17 +1,12 @@
-from fastapi import (
-    APIRouter,
-    Depends,
-)
+from fastapi import APIRouter, Depends
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db.postgres import get_async_session
 
-from .schemas import (
-    PaymentRead,
-    CreatePaymentResponse,
-)
+from .schemas import PaymentRead, CreatePaymentResponse
 from .service import PaymentService
+from .provider import FakePaymentProvider
 
 
 router = APIRouter(
@@ -20,6 +15,7 @@ router = APIRouter(
 )
 
 service = PaymentService()
+provider = FakePaymentProvider()
 
 
 @router.post(
@@ -30,7 +26,6 @@ async def create_payment(
     order_id: int,
     session: AsyncSession = Depends(get_async_session),
 ):
-
     payment, payment_url = await service.create_payment(
         session=session,
         order_id=order_id,
@@ -68,3 +63,20 @@ async def success_payment(
         session=session,
         payment_id=payment_id,
     )
+
+
+@router.get("/fake-pay/{provider_payment_id}")
+async def fake_pay(
+    provider_payment_id: str,
+):
+    """
+    Симуляция "нажатия кнопки оплатить"
+    → провайдер сам отправляет webhook
+    """
+
+    await provider.send_success_webhook(provider_payment_id)
+
+    return {
+        "status": "success",
+        "message": "Webhook sent via fake provider",
+    }

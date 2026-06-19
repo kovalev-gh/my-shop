@@ -28,7 +28,7 @@ app.include_router(auth_router)
 app.include_router(orders_router)
 app.include_router(mailing_router)
 app.include_router(payments_router)
-app.include_router(payment_webhook_router)
+app.include_router(payment_webhook_router)#, prefix="/api/v1")
 
 
 @app.get("/hello/")

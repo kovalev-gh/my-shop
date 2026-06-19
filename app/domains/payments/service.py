@@ -1,23 +1,19 @@
-from decimal import (
-    Decimal,
-    ROUND_HALF_UP,
-)
+import logging
+from decimal import Decimal, ROUND_HALF_UP
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import update
 
-from core.config import settings
-
-
-from domains.orders.models import OrderStatus
+from domains.orders.models import Order, OrderStatus
 from domains.orders.service import OrderService
 
 from .exceptions import PaymentNotFoundException
-from .models import (
-    Payment,
-    PaymentStatus,
-)
-from .provider import FakePaymentProvider,YookassaPaymentProvider
+from .models import Payment, PaymentStatus
+from .provider import FakePaymentProvider
 from .repository import PaymentRepository
+
+
+logger = logging.getLogger(__name__)
 
 
 class PaymentService:
@@ -25,11 +21,7 @@ class PaymentService:
     def __init__(self):
         self.repository = PaymentRepository()
         self.order_service = OrderService()
-        self.provider = YookassaPaymentProvider(
-    shop_id=settings.yookassa.shop_id,
-    secret_key=settings.yookassa.secret_key,
-)
-        #self.provider= FakePaymentProvider()
+        self.provider = FakePaymentProvider()
 
     # -------------------------
     # CREATE PAYMENT
@@ -40,11 +32,34 @@ class PaymentService:
         order_id: int,
     ) -> tuple[Payment, str]:
 
+        logger.info("Creating payment for order_id=%s", order_id)
+
         order = await self.order_service.get_order(
             session=session,
             order_id=order_id,
         )
 
+        logger.info(
+            "Order loaded: id=%s items=%s",
+            order.id,
+            len(order.items),
+        )
+
+        # защита от дублей
+        existing_payment = await self.repository.get_by_order_id(
+            session=session,
+            order_id=order.id,
+        )
+
+        if existing_payment and existing_payment.status == PaymentStatus.PENDING:
+            logger.info(
+                "Payment already exists for order_id=%s payment_id=%s",
+                order.id,
+                existing_payment.id,
+            )
+            return existing_payment, "already_exists"
+
+        # считаем сумму
         total_amount = Decimal("0.00")
 
         for item in order.items:
@@ -55,22 +70,40 @@ class PaymentService:
             rounding=ROUND_HALF_UP,
         )
 
+        logger.info(
+            "Total amount calculated: order_id=%s amount=%s",
+            order.id,
+            total_amount,
+        )
+
         provider_payment = await self.provider.create_payment(
             amount=total_amount,
             order_id=order.id,
         )
 
+        logger.info(
+            "Provider payment created: provider_id=%s status=%s",
+            provider_payment["id"],
+            provider_payment["status"],
+        )
+
         payment = await self.repository.create(
             session=session,
             order_id=order.id,
-            provider="yookassa",
-            #provider="fake",
+            provider="fake",
             provider_payment_id=provider_payment["id"],
             amount=total_amount,
             status=PaymentStatus.PENDING,
         )
 
         await session.commit()
+        await session.refresh(payment)
+
+        logger.info(
+            "Payment saved: payment_id=%s provider_payment_id=%s",
+            payment.id,
+            payment.provider_payment_id,
+        )
 
         return payment, provider_payment["confirmation_url"]
 
@@ -83,13 +116,22 @@ class PaymentService:
         payment_id: int,
     ) -> Payment:
 
+        logger.info("Fetching payment: payment_id=%s", payment_id)
+
         payment = await self.repository.get_by_id(
             session=session,
             obj_id=payment_id,
         )
 
         if payment is None:
+            logger.warning("Payment not found: payment_id=%s", payment_id)
             raise PaymentNotFoundException()
+
+        logger.info(
+            "Payment found: id=%s status=%s",
+            payment.id,
+            payment.status,
+        )
 
         return payment
 
@@ -102,6 +144,8 @@ class PaymentService:
         payment_id: int,
     ) -> Payment:
 
+        logger.info("Mark payment succeeded: payment_id=%s", payment_id)
+
         payment = await self.get_payment(
             session=session,
             payment_id=payment_id,
@@ -110,7 +154,7 @@ class PaymentService:
         return await self._mark_succeeded(session, payment)
 
     # -------------------------
-    # PUBLIC: mark by provider id (WEBHOOK USE)
+    # PUBLIC: mark by provider id (WEBHOOK ENTRY POINT)
     # -------------------------
     async def mark_succeeded_by_provider_id(
         self,
@@ -118,12 +162,21 @@ class PaymentService:
         provider_payment_id: str,
     ) -> Payment:
 
+        logger.info(
+            "Webhook received for provider_payment_id=%s",
+            provider_payment_id,
+        )
+
         payment = await self.repository.get_by_provider_payment_id(
             session=session,
             provider_payment_id=provider_payment_id,
         )
 
         if payment is None:
+            logger.warning(
+                "Payment not found for provider_payment_id=%s",
+                provider_payment_id,
+            )
             raise PaymentNotFoundException()
 
         return await self._mark_succeeded(session, payment)
@@ -137,15 +190,37 @@ class PaymentService:
         payment: Payment,
     ) -> Payment:
 
-        # идемпотентность (важно для webhook)
+        logger.info(
+            "Marking payment succeeded: payment_id=%s status=%s",
+            payment.id,
+            payment.status,
+        )
+
+        # идемпотентность webhook
         if payment.status == PaymentStatus.SUCCEEDED:
+            logger.info(
+                "Payment already succeeded: payment_id=%s",
+                payment.id,
+            )
             return payment
 
+        # обновляем payment
         payment.status = PaymentStatus.SUCCEEDED
 
-        order = payment.order
-        order.status = OrderStatus.PAID
+        # 🔴 ВАЖНО: обновляем заказ безопасно через SQL UPDATE
+        await session.execute(
+            update(Order)
+            .where(Order.id == payment.order_id)
+            .values(status=OrderStatus.PAID)
+        )
 
         await session.commit()
+        await session.refresh(payment)
+
+        logger.info(
+            "Payment SUCCESS: payment_id=%s order_id=%s",
+            payment.id,
+            payment.order_id,
+        )
 
         return payment

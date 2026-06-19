@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 
 class OrderStatus(str, Enum):
     CREATED = "created"
+    WAITING_PAYMENT = "waiting_payment"
     PAID = "paid"
     CANCELED = "canceled"
 

@@ -1,54 +1,60 @@
-from uuid import uuid4
+import logging
 from decimal import Decimal
-from yookassa import Configuration, Payment
+from uuid import uuid4
+from core.config import settings
+
+import httpx
+
+logger = logging.getLogger(__name__)
 
 class FakePaymentProvider:
+    """
+    Фейковый платёжный провайдер:
+    - создаёт payment intent
+    - имитирует успешную оплату через webhook
+    """
+
+    def __init__(self):
+        self.base_url = f"http://localhost:8000"
 
     async def create_payment(
         self,
         amount: Decimal,
         order_id: int,
     ) -> dict:
+        """
+        Создание "платёжного интента" у провайдера
+        (в реальности это Stripe/YooKassa create intent)
+        """
+
+        payment_id = str(uuid4())
+
+        logger.warning(f"confirmation_url: {self.base_url}/payments/fake-pay/{payment_id}")
 
         return {
-            "id": str(uuid4()),
+            "id": payment_id,
             "status": "pending",
             "confirmation_url": (
-                f"http://localhost:8000/payments/fake-success/"
-                f"{uuid4()}"
+                f"{self.base_url}/payments/fake-pay/{payment_id}"
+                #f"{self.base_url}/payments/fake-pay/{payment_id}"
             ),
         }
 
-class YookassaPaymentProvider:
+    async def send_success_webhook(self, payment_id: str) -> None:
+        """
+        ИМИТАЦИЯ:
+        внешний платёжный сервис сообщает об успешной оплате
+        """
 
-    def __init__(self, shop_id: str, secret_key: str):
-        Configuration.account_id = shop_id
-        Configuration.secret_key = secret_key
-
-    async def create_payment(self, amount: Decimal, order_id: int) -> dict:
-        idempotence_key = str(uuid.uuid4())
-
-        payment = Payment.create(
-            {
-                "amount": {
-                    "value": f"{amount:.2f}",
-                    "currency": "RUB",
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                #f"{self.base_url}/api/v1/webhooks/fake",
+                    f"{self.base_url}/webhooks/fake",
+                json={
+                    "event": "payment.succeeded",
+                    "object": {
+                        "id": payment_id,
+                    },
                 },
-                "confirmation": {
-                    "type": "redirect",
-                    "return_url": "http://localhost:8000/payments/success",
-                },
-                "capture": True,
-                "description": f"Order #{order_id}",
-                "metadata": {
-                    "order_id": order_id,
-                },
-            },
-            idempotence_key,
-        )
-
-        return {
-            "id": payment.id,
-            "status": payment.status,
-            "confirmation_url": payment.confirmation.confirmation_url,
-        }
+                timeout=5.0,
+            )
