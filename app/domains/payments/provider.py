@@ -1,4 +1,5 @@
 import logging
+from asyncio import sleep
 from decimal import Decimal
 from uuid import uuid4
 from core.config import settings
@@ -43,7 +44,7 @@ class FakePaymentProvider:
         ИМИТАЦИЯ:
         внешний платёжный сервис сообщает об успешной оплате
         """
-
+        await sleep(5) # имитация долгой операции
         async with httpx.AsyncClient() as client:
             await client.post(
                     f"{self.base_url}/webhooks/fake",
