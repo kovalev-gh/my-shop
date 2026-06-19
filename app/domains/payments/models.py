@@ -34,7 +34,7 @@ class Payment(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     order_id: Mapped[int] = mapped_column(ForeignKey("orders.id"), nullable=False)
-    provider: Mapped[str] = mapped_column(String(50), nullable=False, default="yookassa")
+    provider: Mapped[str] = mapped_column(String(50), nullable=False, default="fake_provider")
     provider_payment_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     status: Mapped[PaymentStatus] = mapped_column(SQLEnum(PaymentStatus), nullable=False, default=PaymentStatus.PENDING)
