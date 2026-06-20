@@ -1,13 +1,18 @@
 # app/domains/orders/router.py
 
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db.postgres import get_async_session
 
-from domains.auth.dependencies import get_current_admin, get_current_user
+from domains.auth.dependencies import (
+    get_current_admin,
+    get_current_user,
+)
 from domains.users.models import User
 
+from .dependencies import get_order_with_access
+from .models import Order
 from .schemas import OrderCreate, OrderRead
 from .service import OrderService
 
@@ -42,7 +47,9 @@ async def get_all_orders(
     admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_async_session),
 ):
-    return await service.get_all_orders(session=session)
+    return await service.get_all_orders(
+        session=session,
+    )
 
 
 @router.get(
@@ -50,21 +57,8 @@ async def get_all_orders(
     response_model=OrderRead,
 )
 async def get_order(
-    order_id: int,
-    current_user: User = Depends(get_current_user),
-    session: AsyncSession = Depends(get_async_session),
+    order: Order = Depends(get_order_with_access),
 ):
-    order = await service.get_order(
-        session=session,
-        order_id=order_id,
-    )
-
-    if order.user_id != current_user.id and not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
     return order
 
 
@@ -90,27 +84,14 @@ async def create_order(
     response_model=OrderRead,
 )
 async def add_item(
-    order_id: int,
     product_id: int,
     quantity: int,
-    current_user: User = Depends(get_current_user),
+    order: Order = Depends(get_order_with_access),
     session: AsyncSession = Depends(get_async_session),
 ):
-    order = await service.get_order(
-        session=session,
-        order_id=order_id,
-    )
-
-
-    if order.user_id != current_user.id and not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
     return await service.add_item_to_order(
         session=session,
-        order_id=order_id,
+        order_id=order.id,
         product_id=product_id,
         quantity=quantity,
     )
@@ -121,27 +102,14 @@ async def add_item(
     response_model=OrderRead,
 )
 async def remove_item(
-    order_id: int,
     product_id: int,
     quantity: int | None = None,
-    current_user: User = Depends(get_current_user),
+    order: Order = Depends(get_order_with_access),
     session: AsyncSession = Depends(get_async_session),
 ):
-    order = await service.get_order(
-        session=session,
-        order_id=order_id,
-    )
-
-
-    if order.user_id != current_user.id and not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
     return await service.remove_item_from_order(
         session=session,
-        order_id=order_id,
+        order_id=order.id,
         product_id=product_id,
         quantity=quantity,
     )
@@ -152,22 +120,10 @@ async def remove_item(
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_order(
-    order_id: int,
-    current_user: User = Depends(get_current_user),
+    order: Order = Depends(get_order_with_access),
     session: AsyncSession = Depends(get_async_session),
 ):
-    order = await service.get_order(
-        session=session,
-        order_id=order_id,
-    )
-
-    if order.user_id != current_user.id and not current_user.is_admin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
     await service.delete_order(
         session=session,
-        order_id=order_id,
+        order_id=order.id,
     )
