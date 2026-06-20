@@ -4,9 +4,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.db.postgres import get_async_session
 
-from .schemas import PaymentRead, CreatePaymentResponse
-from .service import PaymentService
+from domains.auth.dependencies import get_current_admin
+from domains.users.models import User
+
+from domains.orders.dependencies import get_order_with_access
+from domains.orders.models import Order
+
+from .dependencies import get_payment_with_access
+from .models import Payment
 from .provider import FakePaymentProvider
+from .schemas import (
+    PaymentRead,
+    CreatePaymentResponse,
+)
+from .service import PaymentService
 
 
 router = APIRouter(
@@ -23,12 +34,12 @@ provider = FakePaymentProvider()
     response_model=CreatePaymentResponse,
 )
 async def create_payment(
-    order_id: int,
+    order: Order = Depends(get_order_with_access),
     session: AsyncSession = Depends(get_async_session),
 ):
     payment, payment_url = await service.create_payment(
         session=session,
-        order_id=order_id,
+        order_id=order.id,
     )
 
     return {
@@ -42,13 +53,9 @@ async def create_payment(
     response_model=PaymentRead,
 )
 async def get_payment(
-    payment_id: int,
-    session: AsyncSession = Depends(get_async_session),
+    payment: Payment = Depends(get_payment_with_access),
 ):
-    return await service.get_payment_by_id(
-        session=session,
-        payment_id=payment_id,
-    )
+    return payment
 
 # Чтобы не гонять вебхук
 @router.post(
@@ -57,6 +64,7 @@ async def get_payment(
 )
 async def success_payment(
     payment_id: int,
+    admin: User = Depends(get_current_admin),
     session: AsyncSession = Depends(get_async_session),
 ):
     return await service.mark_succeeded_by_payment_id(

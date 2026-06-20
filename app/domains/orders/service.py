@@ -9,9 +9,9 @@ from domains.mailing.send_order_notification import send_order_notification_emai
 from .exceptions import (
     OrderNotFoundException,
     NotEnoughStockException,
-    OrderItemNotFoundException
+    OrderItemNotFoundException,
 )
-from .models import Order
+from .models import Order, OrderStatus
 from .repository import OrderRepository
 from .schemas import OrderCreate
 
@@ -108,8 +108,7 @@ class OrderService:
             order_id=order.id,
         )
 
-#        await send_order_notification_email(order) #отправляем письмо
-#отключил потому что не работает с впн
+        # await send_order_notification_email(order)
 
         return order
 
@@ -132,17 +131,22 @@ class OrderService:
         await session.commit()
 
     async def add_item_to_order(
-            self,
-            session: AsyncSession,
-            order_id: int,
-            product_id: int,
-            quantity: int,
+        self,
+        session: AsyncSession,
+        order_id: int,
+        product_id: int,
+        quantity: int,
     ) -> Order:
 
         order = await self.get_order(
             session=session,
             order_id=order_id,
         )
+
+        if order.status == OrderStatus.PAID:
+            raise ValueError(
+                "Cannot modify a paid order",
+            )
 
         product = await self.product_repository.get_by_id(
             session=session,
@@ -153,7 +157,9 @@ class OrderService:
             raise ProductNotFoundException()
 
         if product.stock_quantity < quantity:
-            raise NotEnoughStockException(product_id=product.id)
+            raise NotEnoughStockException(
+                product_id=product.id,
+            )
 
         existing_item = await self.repository.get_order_item(
             session=session,
@@ -183,17 +189,22 @@ class OrderService:
         )
 
     async def remove_item_from_order(
-            self,
-            session: AsyncSession,
-            order_id: int,
-            product_id: int,
-            quantity: int | None = None,
+        self,
+        session: AsyncSession,
+        order_id: int,
+        product_id: int,
+        quantity: int | None = None,
     ) -> Order:
 
         order = await self.get_order(
             session=session,
             order_id=order_id,
         )
+
+        if order.status == OrderStatus.PAID:
+            raise ValueError(
+                "Cannot modify a paid order",
+            )
 
         item = await self.repository.get_order_item(
             session=session,

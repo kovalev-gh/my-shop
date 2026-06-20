@@ -1,8 +1,8 @@
 import logging
 from decimal import Decimal, ROUND_HALF_UP
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from domains.orders.models import Order, OrderStatus
 from domains.orders.service import OrderService
@@ -11,7 +11,7 @@ from .exceptions import (
     PaymentNotFoundException,
     PaymentAlreadyExistsException,
     PaymentAlreadySucceededException,
-    PaymentAlreadyCanceledException
+    PaymentAlreadyCanceledException,
 )
 from .models import Payment, PaymentStatus
 from .provider import FakePaymentProvider
@@ -28,9 +28,6 @@ class PaymentService:
         self.order_service = OrderService()
         self.provider = FakePaymentProvider()
 
-    # -------------------------
-    # CREATE PAYMENT
-    # -------------------------
     async def create_payment(
         self,
         session: AsyncSession,
@@ -70,7 +67,6 @@ class PaymentService:
                     order.id, existing_payment.id
                 )
                 raise PaymentAlreadySucceededException()
-
 
             if existing_payment.status == PaymentStatus.CANCELED:
                 logger.warning(
@@ -127,9 +123,6 @@ class PaymentService:
 
         return payment, provider_payment["confirmation_url"]
 
-    # -------------------------
-    # GET PAYMENT
-    # -------------------------
     async def get_payment_by_id(
         self,
         session: AsyncSession,
@@ -155,9 +148,6 @@ class PaymentService:
 
         return payment
 
-    # -------------------------
-    # PUBLIC: mark by payment id
-    # -------------------------
     async def mark_succeeded_by_payment_id(
         self,
         session: AsyncSession,
@@ -173,9 +163,6 @@ class PaymentService:
 
         return await self._mark_succeeded(session, payment)
 
-    # -------------------------
-    # PUBLIC: mark by provider id (WEBHOOK ENTRY POINT)
-    # -------------------------
     async def mark_succeeded_by_provider_id(
         self,
         session: AsyncSession,
@@ -201,9 +188,6 @@ class PaymentService:
 
         return await self._mark_succeeded(session, payment)
 
-    # -------------------------
-    # PRIVATE CORE LOGIC
-    # -------------------------
     async def _mark_succeeded(
         self,
         session: AsyncSession,
